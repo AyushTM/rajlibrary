@@ -19,9 +19,12 @@ function createPayment(payload) {
   const paymentMethod = payload.paymentMethod?.trim();
   const receiptNumber = payload.receiptNumber?.trim() || createReceiptNumber();
   const seatLabel = payload.seatLabel?.trim();
+  const membershipPlan = payload.membershipPlan?.trim() || member.membershipPlan || 'Monthly';
+  const membershipStartDate = payload.membershipStartDate?.trim() || member.membershipStartDate;
+  const membershipExpiryDate = payload.membershipExpiryDate?.trim() || member.membershipExpiryDate;
 
-  if (!paymentDate || !paymentMethod || Number.isNaN(amount)) {
-    throw new Error('Invalid payment details');
+  if (!paymentDate || !paymentMethod || Number.isNaN(amount) || !membershipStartDate || !membershipExpiryDate) {
+    throw new Error('Please complete the membership dates before recording payment');
   }
 
   const stmt = db.prepare(`
@@ -35,9 +38,9 @@ function createPayment(payload) {
 
   const info = stmt.run(
     member.id,
-    member.membershipPlan,
-    member.membershipStartDate,
-    member.membershipExpiryDate,
+    membershipPlan,
+    membershipStartDate,
+    membershipExpiryDate,
     seatLabel || member.assignedSeat || null,
     amount,
     paymentDate,
@@ -46,6 +49,12 @@ function createPayment(payload) {
     payload.notes?.trim() || null,
     new Date().toISOString(),
   );
+
+  db.prepare(`
+    UPDATE members
+    SET membership_plan = ?, membership_start_date = ?, membership_expiry_date = ?, assigned_seat = ?, status = 'Active'
+    WHERE id = ?
+  `).run(membershipPlan, membershipStartDate, membershipExpiryDate, seatLabel || member.assignedSeat || null, member.id);
 
   return getPayment(info.lastInsertRowid);
 }

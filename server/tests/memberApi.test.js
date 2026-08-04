@@ -16,11 +16,23 @@ function run() {
     status: 'Active',
   });
 
+  const expiredMember = createMember({
+    fullName: 'Expired Member',
+    mobileNumber: '1111111111',
+    joiningDate: '2025-01-01',
+    membershipPlan: 'Monthly',
+    membershipStartDate: '2025-01-01',
+    membershipExpiryDate: '2025-02-01',
+    assignedSeat: null,
+    status: 'Active',
+  });
+
   assert.ok(created.id > 0, 'Expected created member to have an id');
-  assert.equal(listMembers().length, beforeCount + 1);
+  assert.equal(listMembers().length, beforeCount + 2);
 
   const fetched = getMember(created.id);
   assert.equal(fetched?.fullName, 'Amit Sharma');
+  assert.equal(getMember(expiredMember.id)?.status, 'Expired');
 
   const updated = updateMember(created.id, { status: 'Expired' });
   assert.equal(updated.status, 'Expired');

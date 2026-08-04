@@ -6,6 +6,8 @@ const db = require('./db');
 const { createMember, listMembers, getMember, updateMember, deleteMember, renewMembership, listRenewals } = require('./memberService');
 const { assignSeat, vacateSeat, getSeatLayout } = require('./seatService');
 const { createPayment, listPayments, getPaymentsByMemberId, getReceiptByPaymentId } = require('./paymentService');
+const { login, verifyToken } = require('./authService');
+const { buildReportStats } = require('./reportService');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -13,15 +15,38 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  const user = verifyToken(token);
+
+  if (!user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  req.user = user;
+  next();
+}
+
+app.post('/api/login', (req, res) => {
+  try {
+    const result = login(req.body.username, req.body.password);
+    res.json(result);
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/members', (req, res) => {
+app.get('/api/members', requireAuth, (req, res) => {
   res.json(listMembers());
 });
 
-app.post('/api/members', (req, res) => {
+app.post('/api/members', requireAuth, (req, res) => {
   try {
     const member = createMember(req.body);
     res.status(201).json(member);
@@ -30,7 +55,7 @@ app.post('/api/members', (req, res) => {
   }
 });
 
-app.get('/api/members/:id', (req, res) => {
+app.get('/api/members/:id', requireAuth, (req, res) => {
   const member = getMember(Number(req.params.id));
   if (!member) {
     res.status(404).json({ error: 'Member not found' });
@@ -40,7 +65,7 @@ app.get('/api/members/:id', (req, res) => {
   res.json(member);
 });
 
-app.put('/api/members/:id', (req, res) => {
+app.put('/api/members/:id', requireAuth, (req, res) => {
   try {
     const member = updateMember(Number(req.params.id), req.body);
     res.json(member);
@@ -49,7 +74,7 @@ app.put('/api/members/:id', (req, res) => {
   }
 });
 
-app.delete('/api/members/:id', (req, res) => {
+app.delete('/api/members/:id', requireAuth, (req, res) => {
   const deleted = deleteMember(Number(req.params.id));
   if (!deleted) {
     res.status(404).json({ error: 'Member not found' });
@@ -59,7 +84,7 @@ app.delete('/api/members/:id', (req, res) => {
   res.status(204).send();
 });
 
-app.post('/api/members/:id/renewals', (req, res) => {
+app.post('/api/members/:id/renewals', requireAuth, (req, res) => {
   try {
     const member = renewMembership(Number(req.params.id), req.body);
     res.status(201).json(member);
@@ -68,15 +93,15 @@ app.post('/api/members/:id/renewals', (req, res) => {
   }
 });
 
-app.get('/api/members/:id/renewals', (req, res) => {
+app.get('/api/members/:id/renewals', requireAuth, (req, res) => {
   res.json(listRenewals(Number(req.params.id)));
 });
 
-app.get('/api/seats', (req, res) => {
+app.get('/api/seats', requireAuth, (req, res) => {
   res.json(getSeatLayout());
 });
 
-app.post('/api/seats/assign', (req, res) => {
+app.post('/api/seats/assign', requireAuth, (req, res) => {
   try {
     const seat = assignSeat(req.body.memberId, req.body.seatLabel);
     res.json(seat);
@@ -85,7 +110,7 @@ app.post('/api/seats/assign', (req, res) => {
   }
 });
 
-app.post('/api/seats/vacate', (req, res) => {
+app.post('/api/seats/vacate', requireAuth, (req, res) => {
   try {
     const seat = vacateSeat(req.body.memberId);
     res.json(seat);
@@ -94,20 +119,20 @@ app.post('/api/seats/vacate', (req, res) => {
   }
 });
 
-app.get('/api/payments', (req, res) => {
+app.get('/api/payments', requireAuth, (req, res) => {
   res.json(listPayments());
 });
 
-app.get('/api/payments/:memberId', (req, res) => {
-  res.json(getPaymentsByMemberId(Number(req.params.memberId)));
-});
-
-app.get('/api/payments/receipt/:paymentId', (req, res) => {
+app.get('/api/payments/receipt/:paymentId', requireAuth, (req, res) => {
   const receipt = getReceiptByPaymentId(Number(req.params.paymentId));
   res.json(receipt);
 });
 
-app.post('/api/payments', (req, res) => {
+app.get('/api/payments/:memberId', requireAuth, (req, res) => {
+  res.json(getPaymentsByMemberId(Number(req.params.memberId)));
+});
+
+app.post('/api/payments', requireAuth, (req, res) => {
   try {
     const payment = createPayment(req.body);
     res.status(201).json(payment);
@@ -116,7 +141,7 @@ app.post('/api/payments', (req, res) => {
   }
 });
 
-app.get('/api/dashboard', (req, res) => {
+app.get('/api/dashboard', requireAuth, (req, res) => {
   const members = listMembers();
   const payments = listPayments();
   const today = new Date();
@@ -141,31 +166,13 @@ app.get('/api/dashboard', (req, res) => {
   });
 });
 
-app.get('/api/reports', (req, res) => {
+app.get('/api/reports', requireAuth, (req, res) => {
   const members = listMembers();
   const payments = listPayments();
-  const today = new Date();
-
-  const expiringSoon = members.filter((member) => {
-    const expiryDate = new Date(member.membershipExpiryDate);
-    const diff = (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-    return diff <= 7 && diff >= 0;
-  });
-
-  res.json({
-    totalMembers: members.length,
-    activeMembers: members.filter((member) => member.status === 'Active').length,
-    expiredMembers: members.filter((member) => member.status === 'Expired').length,
-    pendingMembers: members.filter((member) => member.status === 'Pending').length,
-    occupiedSeats: members.filter((member) => member.assignedSeat).length,
-    availableSeats: 48 - members.filter((member) => member.assignedSeat).length,
-    monthlyRevenue: payments.reduce((total, payment) => total + payment.amount, 0),
-    expiringSoon,
-    recentPayments: payments.slice(0, 10),
-  });
+  res.json(buildReportStats(members, payments));
 });
 
-app.get('/api/backup', (req, res) => {
+app.get('/api/backup', requireAuth, (req, res) => {
   const backupPath = path.resolve(__dirname, '../../data/raj-digital-library.backup.json');
   const payload = {
     exportedAt: new Date().toISOString(),
@@ -178,7 +185,7 @@ app.get('/api/backup', (req, res) => {
   res.download(backupPath, 'raj-digital-library-backup.json');
 });
 
-app.post('/api/restore', (req, res) => {
+app.post('/api/restore', requireAuth, (req, res) => {
   try {
     const backup = req.body;
     if (!backup || !Array.isArray(backup.members) || !Array.isArray(backup.payments)) {

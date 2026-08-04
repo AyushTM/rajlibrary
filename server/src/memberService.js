@@ -29,6 +29,30 @@ function parseDate(value) {
   return new Date(year, month - 1, day);
 }
 
+function deriveMemberStatus(status, expiryDate, today = new Date()) {
+  const normalizedStatus = status?.trim();
+  if (!normalizedStatus || normalizedStatus === 'Pending' || normalizedStatus === 'Expired') {
+    return normalizedStatus || 'Active';
+  }
+
+  if (!expiryDate) {
+    return normalizedStatus || 'Active';
+  }
+
+  const expiry = parseDate(expiryDate);
+  const diffDays = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (diffDays < 0) {
+    return 'Expired';
+  }
+
+  if (diffDays <= 7) {
+    return 'Pending';
+  }
+
+  return normalizedStatus;
+}
+
 function formatDate(value) {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, '0');
@@ -53,7 +77,7 @@ function mapRow(row) {
     membershipStartDate: row.membership_start_date,
     membershipExpiryDate: row.membership_expiry_date,
     assignedSeat: row.assigned_seat,
-    status: row.status,
+    status: deriveMemberStatus(row.status, row.membership_expiry_date),
     monthlyDuration: row.monthly_duration ?? 1,
   };
 }
@@ -73,8 +97,19 @@ function mapRenewalRow(row) {
 
 function createMember(payload) {
   const member = normalizeMemberPayload(payload);
+  if (!member.fullName || !member.mobileNumber || !member.joiningDate) {
+    throw new Error('Please complete all required member fields');
+  }
+
   const startDate = member.membershipStartDate || member.joiningDate;
-  const expiryDate = member.membershipExpiryDate || calculateExpiry(startDate, member.membershipPlan, member.monthlyDuration);
+  const expiryDate = member.membershipExpiryDate || calculateExpiry(startDate, member.membershipPlan || 'Monthly', member.monthlyDuration);
+  const resolvedMember = {
+    ...member,
+    membershipPlan: member.membershipPlan || 'Monthly',
+    membershipStartDate: startDate,
+    membershipExpiryDate: expiryDate,
+    status: deriveMemberStatus(member.status, expiryDate),
+  };
   const stmt = db.prepare(`
     INSERT INTO members (
       full_name,
@@ -90,15 +125,15 @@ function createMember(payload) {
   `);
 
   const info = stmt.run(
-    member.fullName,
-    member.mobileNumber,
-    member.joiningDate,
-    member.membershipPlan,
+    resolvedMember.fullName,
+    resolvedMember.mobileNumber,
+    resolvedMember.joiningDate,
+    resolvedMember.membershipPlan,
     startDate,
     expiryDate,
-    member.assignedSeat,
-    member.status,
-    member.monthlyDuration,
+    resolvedMember.assignedSeat,
+    resolvedMember.status,
+    resolvedMember.monthlyDuration,
   );
 
   const renewStmt = db.prepare(`
@@ -111,8 +146,8 @@ function createMember(payload) {
     expiryDate,
     expiryDate,
     expiryDate,
-    member.membershipPlan,
-    member.joiningDate,
+    resolvedMember.membershipPlan,
+    resolvedMember.joiningDate,
     'Initial membership entry',
   );
 
@@ -136,8 +171,17 @@ function updateMember(id, updates) {
   }
 
   const member = normalizeMemberPayload({ ...existing, ...updates });
+  if (!member.fullName || !member.mobileNumber || !member.joiningDate || !member.membershipPlan || !member.membershipStartDate) {
+    throw new Error('Please complete all required member fields');
+  }
+
   const startDate = member.membershipStartDate || member.joiningDate;
   const expiryDate = member.membershipExpiryDate || calculateExpiry(startDate, member.membershipPlan, member.monthlyDuration);
+  const resolvedMember = {
+    ...member,
+    membershipExpiryDate: expiryDate,
+    status: deriveMemberStatus(member.status, expiryDate),
+  };
   const stmt = db.prepare(`
     UPDATE members
     SET full_name = ?,
@@ -153,15 +197,15 @@ function updateMember(id, updates) {
   `);
 
   stmt.run(
-    member.fullName,
-    member.mobileNumber,
-    member.joiningDate,
-    member.membershipPlan,
+    resolvedMember.fullName,
+    resolvedMember.mobileNumber,
+    resolvedMember.joiningDate,
+    resolvedMember.membershipPlan,
     startDate,
     expiryDate,
-    member.assignedSeat,
-    member.status,
-    member.monthlyDuration,
+    resolvedMember.assignedSeat,
+    resolvedMember.status,
+    resolvedMember.monthlyDuration,
     id,
   );
 
