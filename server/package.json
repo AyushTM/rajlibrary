@@ -1,0 +1,15 @@
+{
+  "name": "raj-digital-library-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "NODE_ENV=test node tests/memberApi.test.js && NODE_ENV=test node tests/membershipService.test.js && NODE_ENV=test node tests/seatService.test.js && NODE_ENV=test node tests/paymentService.test.js && NODE_ENV=test node tests/receiptService.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.0",
+    "cors": "^2.8.6",
+    "express": "^4.21.2"
+  }
+}
