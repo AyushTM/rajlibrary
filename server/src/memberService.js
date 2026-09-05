@@ -14,6 +14,8 @@ function normalizeMemberPayload(payload) {
   return {
     fullName: payload.fullName?.trim(),
     mobileNumber: payload.mobileNumber?.trim(),
+    email: payload.email?.trim() || null,
+    adhaarNumber: payload.adhaarNumber?.trim() || payload.aadhaarNumber?.trim() || null,
     joiningDate: payload.joiningDate?.trim(),
     membershipPlan: plan,
     membershipStartDate: payload.membershipStartDate?.trim(),
@@ -77,6 +79,8 @@ function mapRow(row) {
     id: row.id,
     fullName: row.full_name,
     mobileNumber: row.mobile_number,
+    email: row.email,
+    adhaarNumber: row.adhaar_number,
     joiningDate: row.joining_date,
     membershipPlan: row.membership_plan,
     membershipStartDate: row.membership_start_date,
@@ -119,6 +123,8 @@ function createMember(payload) {
     INSERT INTO members (
       full_name,
       mobile_number,
+      email,
+      adhaar_number,
       joining_date,
       membership_plan,
       membership_start_date,
@@ -126,12 +132,14 @@ function createMember(payload) {
       assigned_seat,
       status,
       monthly_duration
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const info = stmt.run(
     resolvedMember.fullName,
     resolvedMember.mobileNumber,
+    resolvedMember.email,
+    resolvedMember.adhaarNumber,
     resolvedMember.joiningDate,
     resolvedMember.membershipPlan,
     startDate,
@@ -191,6 +199,8 @@ function updateMember(id, updates) {
     UPDATE members
     SET full_name = ?,
         mobile_number = ?,
+        email = ?,
+        adhaar_number = ?,
         joining_date = ?,
         membership_plan = ?,
         membership_start_date = ?,
@@ -204,6 +214,8 @@ function updateMember(id, updates) {
   stmt.run(
     resolvedMember.fullName,
     resolvedMember.mobileNumber,
+    resolvedMember.email,
+    resolvedMember.adhaarNumber,
     resolvedMember.joiningDate,
     resolvedMember.membershipPlan,
     startDate,

@@ -5,6 +5,7 @@ type Member = {
   id: number
   fullName: string
   mobileNumber: string
+  adhaarNumber?: string | null
   email?: string
   joiningDate: string
   membershipPlan: string
@@ -97,6 +98,7 @@ type ReportStats = {
 type MemberFormState = {
   fullName: string
   mobileNumber: string
+  adhaarNumber: string
   email: string
   joiningDate: string
   assignedSeat: string
@@ -142,6 +144,7 @@ const membershipPlanOptions = ['Monthly', 'Quarterly', 'Half-Yearly', 'Yearly']
 const emptyForm: MemberFormState = {
   fullName: '',
   mobileNumber: '',
+  adhaarNumber: '',
   email: '',
   joiningDate: '',
   assignedSeat: '',
@@ -756,6 +759,7 @@ function App() {
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
         ...form,
+        adhaarNumber: form.adhaarNumber.trim(),
         membershipPlan: 'Monthly',
         membershipStartDate: new Date().toISOString().slice(0, 10),
         membershipExpiryDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10),
@@ -791,6 +795,7 @@ function App() {
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
         ...editForm,
+        adhaarNumber: editForm.adhaarNumber.trim(),
         membershipPlan: existingMember.membershipPlan,
         membershipStartDate: existingMember.membershipStartDate,
         membershipExpiryDate: existingMember.membershipExpiryDate,
@@ -936,9 +941,25 @@ function App() {
     setFeedback({ type: 'success', text: 'Backup downloaded successfully.' })
   }
 
+  function escapeCsvValue(value: string | number | null | undefined) {
+    const text = String(value ?? '')
+    const needsQuotes = /[",\n]/.test(text)
+    return needsQuotes ? `"${text.replace(/"/g, '""')}"` : text
+  }
+
   function handleExportMembers() {
-    const rows = filteredMembers.map((member) => [member.id, member.fullName, member.mobileNumber, member.membershipStartDate, member.membershipExpiryDate, member.assignedSeat ?? '', member.status].join(','))
-    const csv = ['id,name,mobile,startDate,expiry,seat,status', ...rows].join('\n')
+    const rows = filteredMembers.map((member) => [
+      member.id,
+      member.fullName,
+      member.mobileNumber,
+      member.adhaarNumber ?? '',
+      member.email ?? '',
+      member.membershipStartDate,
+      member.membershipExpiryDate,
+      member.assignedSeat ?? '',
+      member.status,
+    ].map(escapeCsvValue).join(','))
+    const csv = ['id,name,mobile,adhaarNumber,email,startDate,expiry,seat,status', ...rows].join('\n')
     downloadTextFile('members.csv', csv, 'text/csv;charset=utf-8;')
     setFeedback({ type: 'success', text: 'Member export downloaded.' })
   }
@@ -1024,6 +1045,28 @@ function App() {
     }
   }
 
+  async function handleVacateSeat(memberId: number | null) {
+    if (!memberId) {
+      return
+    }
+
+    const response = await fetch(`${apiBase}/seats/vacate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ memberId }),
+    })
+
+    if (response.ok) {
+      setSelectedSeatLabel(null)
+      setSeatAssignment(emptySeatAssignment)
+      setFeedback({ type: 'success', text: 'Seat vacated successfully.' })
+      await refreshData()
+    } else {
+      const error = await response.json().catch(() => ({ error: 'Unable to vacate seat.' }))
+      setFeedback({ type: 'error', text: error.error || 'Unable to vacate seat.' })
+    }
+  }
+
   function handleSeatSelection(seat: Seat) {
     setSelectedSeatLabel(seat.label)
     setSeatAssignment((current) => ({ ...current, seatLabel: seat.label }))
@@ -1034,6 +1077,7 @@ function App() {
     setEditForm({
       fullName: member.fullName,
       mobileNumber: member.mobileNumber,
+      adhaarNumber: member.adhaarNumber ?? '',
       email: member.email ?? '',
       joiningDate: member.joiningDate,
       assignedSeat: member.assignedSeat ?? '',
@@ -1162,6 +1206,7 @@ function App() {
             <form className="form-grid" onSubmit={handleSubmit}>
               <label className="field"><span>Full Name</span><input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} required /></label>
               <label className="field"><span>Mobile Number</span><input value={form.mobileNumber} onChange={(event) => setForm({ ...form, mobileNumber: event.target.value })} required /></label>
+              <label className="field"><span>Adhaar Number</span><input value={form.adhaarNumber} onChange={(event) => setForm({ ...form, adhaarNumber: event.target.value })} /></label>
               <label className="field"><span>Email</span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
               <label className="field"><span>Joining Date</span><input type="date" value={form.joiningDate} onChange={(event) => setForm({ ...form, joiningDate: event.target.value })} required /></label>
               <label className="field"><span>Seat Assigned</span><input value={form.assignedSeat} onChange={(event) => setForm({ ...form, assignedSeat: event.target.value })} /></label>
@@ -1176,6 +1221,7 @@ function App() {
                 <form className="form-grid" onSubmit={handleEditSubmit}>
                   <label className="field"><span>Full Name</span><input value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} required /></label>
                   <label className="field"><span>Mobile Number</span><input value={editForm.mobileNumber} onChange={(event) => setEditForm({ ...editForm, mobileNumber: event.target.value })} required /></label>
+                  <label className="field"><span>Adhaar Number</span><input value={editForm.adhaarNumber} onChange={(event) => setEditForm({ ...editForm, adhaarNumber: event.target.value })} /></label>
                   <label className="field"><span>Email</span><input type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} /></label>
                   <label className="field"><span>Joining Date</span><input type="date" value={editForm.joiningDate} onChange={(event) => setEditForm({ ...editForm, joiningDate: event.target.value })} required /></label>
                   <label className="field"><span>Seat Assigned</span><input value={editForm.assignedSeat} onChange={(event) => setEditForm({ ...editForm, assignedSeat: event.target.value })} /></label>
@@ -1251,7 +1297,7 @@ function App() {
             <form className="form-grid" onSubmit={handleSeatAssignment}>
               <label className="field"><span>Member</span><select value={seatAssignment.memberId ?? ''} onChange={(event) => setSeatAssignment({ ...seatAssignment, memberId: Number(event.target.value) || null })}><option value="">Select member</option>{members.map((member) => <option key={member.id} value={member.id}>{member.fullName}</option>)}</select></label>
               <label className="field"><span>Seat</span><select value={seatAssignment.seatLabel} onChange={(event) => setSeatAssignment({ ...seatAssignment, seatLabel: event.target.value })}><option value="">Select seat</option>{(Array.isArray(seats) ? seats : []).map((seat) => {
-                const displayStatus = seat.status === 'reserved' ? 'occupied' : seat.status
+                const displayStatus = seat.status === 'reserved' ? 'occupied' : (seat.status === 'expired' ? 'expired' : seat.status)
                 return <option key={seat.label} value={seat.label}>{seat.label} ({displayStatus})</option>
               })}</select></label>
               <div className="form-actions full-width"><button type="submit" className="btn btn-primary">Assign Seat</button></div>
@@ -1259,8 +1305,8 @@ function App() {
           </div>
           <div className="panel-card">
             <h4>Seat details</h4>
-            {selectedSeat ? (selectedSeat.memberName ? <div className="seat-detail-card"><p className="eyebrow">{selectedSeat.label}</p><h4>{selectedSeat.memberName}</h4><p>Vacates on {formatDateLabel(selectedSeat.membershipExpiryDate)}</p></div> : <div className="seat-detail-card"><p className="eyebrow">{selectedSeat.label}</p><h4>Available</h4><p>Select a member above and assign this seat.</p></div>) : <p className="helper-text">Choose a seat from the map to view the occupant and vacancy date.</p>}
-            <div className="legend-list"><div className="legend-item"><span className="legend-dot available" /> Available</div><div className="legend-item"><span className="legend-dot occupied" /> Occupied</div><div className="legend-item"><span className="legend-dot expiring" /> Expiring</div></div>
+            {selectedSeat ? (selectedSeat.memberName ? <div className="seat-detail-card"><p className="eyebrow">{selectedSeat.label}</p><h4>{selectedSeat.memberName}</h4><p>{selectedSeat.status === 'expired' ? 'Membership expired' : 'Vacates on'} {formatDateLabel(selectedSeat.membershipExpiryDate)}</p>{selectedSeat.memberId ? <button type="button" className="btn btn-ghost" onClick={() => void handleVacateSeat(selectedSeat.memberId)}>Vacate seat</button> : null}</div> : <div className="seat-detail-card"><p className="eyebrow">{selectedSeat.label}</p><h4>Available</h4><p>Select a member above and assign this seat.</p></div>) : <p className="helper-text">Choose a seat from the map to view the occupant and vacancy date.</p>}
+            <div className="legend-list"><div className="legend-item"><span className="legend-dot available" /> Available</div><div className="legend-item"><span className="legend-dot occupied" /> Occupied</div><div className="legend-item"><span className="legend-dot expiring" /> Expiring</div><div className="legend-item"><span className="legend-dot expired" /> Expired</div></div>
           </div>
         </div>
         <div className="seat-grid">
@@ -1270,7 +1316,13 @@ function App() {
               <div className="seat-cells">
                 {row.seats.map((label) => {
                   const seat = seatLookup.get(label)
-                  const seatStatus = seat?.status === 'reserved' ? 'occupied' : (seat?.status ?? 'available')
+                  const seatStatus = seat ? (() => {
+                    if (seat.status === 'expired') return 'expired'
+                    if (seat.status === 'expiring') return 'expiring'
+                    if (seat.status === 'available') return 'available'
+                    if (seat.status === 'disabled') return 'disabled'
+                    return 'occupied'
+                  })() : 'available'
                   return <button key={label} type="button" className={`seat-cell ${seatStatus}`} onClick={() => handleSeatSelection(seat ?? { label, status: 'available', memberId: null, memberName: null, membershipExpiryDate: null })}><strong>{label}</strong><span>{seat?.memberName ?? 'Available'}</span></button>
                 })}
               </div>

@@ -5,12 +5,17 @@ function run() {
   const created = createMember({
     fullName: 'Ravi Verma',
     mobileNumber: '9999999999',
+    email: 'ravi@example.com',
+    adhaarNumber: '123456789012',
     joiningDate: '2026-08-01',
     membershipPlan: 'Monthly',
     membershipStartDate: '2026-08-01',
     assignedSeat: 'A2',
     status: 'Active',
   });
+
+  assert.equal(created.email, 'ravi@example.com');
+  assert.equal(created.adhaarNumber, '123456789012');
 
   assert.equal(created.membershipExpiryDate, '2026-09-01');
 

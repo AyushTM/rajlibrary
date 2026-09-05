@@ -28,6 +28,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT NOT NULL,
     mobile_number TEXT NOT NULL,
+    email TEXT,
+    adhaar_number TEXT,
     joining_date TEXT NOT NULL,
     membership_plan TEXT NOT NULL,
     membership_start_date TEXT NOT NULL,
@@ -62,9 +64,12 @@ for (const [columnName, definition] of [
   ['renewal_expiry_date', 'TEXT'],
   ['new_expiry_date', 'TEXT'],
   ['monthly_duration', 'INTEGER DEFAULT 1'],
+  ['email', 'TEXT'],
+  ['adhaar_number', 'TEXT'],
 ]) {
   try {
-    db.exec(`ALTER TABLE ${columnName === 'monthly_duration' ? 'members' : 'renewals'} ADD COLUMN ${columnName} ${definition}`);
+    const targetTable = columnName === 'renewal_expiry_date' || columnName === 'new_expiry_date' ? 'renewals' : 'members';
+    db.exec(`ALTER TABLE ${targetTable} ADD COLUMN ${columnName} ${definition}`);
   } catch (error) {
     if (!String(error.message).includes('duplicate column name')) {
       throw error;

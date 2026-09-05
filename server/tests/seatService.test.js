@@ -14,14 +14,30 @@ function run() {
     status: 'Active',
   });
 
+  const expiredMember = createMember({
+    fullName: 'Expired User',
+    mobileNumber: '7777777777',
+    joiningDate: '2025-01-01',
+    membershipPlan: 'Monthly',
+    membershipStartDate: '2025-01-01',
+    membershipExpiryDate: '2025-02-01',
+    assignedSeat: null,
+    status: 'Expired',
+  });
+
   db = require('../src/db');
   db.prepare('UPDATE members SET assigned_seat = NULL WHERE assigned_seat = ?').run('A3');
+  db.prepare('UPDATE members SET assigned_seat = NULL WHERE assigned_seat = ?').run('A4');
 
   const assigned = assignSeat(member.id, 'A3');
   assert.equal(assigned.assignedSeat, 'A3');
 
+  const expiredAssigned = assignSeat(expiredMember.id, 'A4');
+  assert.equal(expiredAssigned.assignedSeat, 'A4');
+
   const layout = getSeatLayout();
   assert.ok(layout.some((seat) => seat.label === 'A3' && seat.memberId === member.id));
+  assert.ok(layout.some((seat) => seat.label === 'A4' && seat.memberId === expiredMember.id && seat.status === 'expired'));
 
   const vacated = vacateSeat(member.id);
   assert.equal(vacated.assignedSeat, null);

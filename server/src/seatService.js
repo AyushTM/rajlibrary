@@ -24,9 +24,12 @@ function getSeatLayout() {
     const expiry = new Date(seatMember.membership_expiry_date);
     const diffDays = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
     const expiresSoon = diffDays <= 7 && diffDays >= 0;
+    const isExpired = diffDays < 0;
 
     let status = 'occupied';
-    if (expiresSoon) {
+    if (isExpired) {
+      status = 'expired';
+    } else if (expiresSoon) {
       status = 'expiring';
     }
     if (DISABLED_SEATS.has(label)) {
