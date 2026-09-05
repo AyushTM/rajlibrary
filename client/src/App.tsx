@@ -220,29 +220,245 @@ function downloadTextFile(filename: string, content: string, type: string) {
 function downloadInvoice(receipt: Receipt) {
   const html = `
     <html>
-      <head><title>Invoice ${receipt.receiptNumber}</title></head>
-      <body style="font-family: 'Courier New', monospace; padding: 24px; color: #111827; line-height: 1.6;">
-        <div style="text-align: center; margin-bottom: 12px;">
-          <h2 style="margin: 0;">RAJ DIGITAL LIBRARY</h2>
-          <p style="margin: 2px 0 0;">Study Center & Reading Room</p>
+      <head>
+        <title>Invoice ${receipt.receiptNumber}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 32px;
+          }
+          .invoice {
+            max-width: 780px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+          }
+          .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            padding: 28px 30px 20px;
+          }
+          .brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+          }
+          .brand-mark {
+            width: 54px;
+            height: 54px;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.12);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            letter-spacing: 1px;
+          }
+          .title {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+          }
+          .subtitle {
+            margin: 8px 0 0;
+            opacity: 0.8;
+            font-size: 13px;
+          }
+          .status {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(52, 211, 153, 0.18);
+            border: 1px solid rgba(52, 211, 153, 0.35);
+            color: #d1fae5;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .body {
+            padding: 24px 30px 10px;
+          }
+          .meta-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .meta-box {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 18px;
+          }
+          .meta-label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 6px;
+          }
+          .meta-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .summary {
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+          }
+          .summary strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 4px;
+          }
+          .summary small {
+            color: #475569;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .summary .chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 12px;
+          }
+          .details {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+          }
+          .section {
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            background: #fff;
+            padding: 18px;
+          }
+          .section h4 {
+            margin: 0 0 14px;
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
+          }
+          .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+          }
+          .row:last-child { border-bottom: none; }
+          .row span { color: #64748b; }
+          .row strong { text-align: right; }
+          .footer {
+            padding: 24px 30px 30px;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 20px;
+          }
+          .thankyou {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+          }
+          .signature {
+            text-align: right;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+          }
+          @media (max-width: 640px) {
+            body { padding: 16px; }
+            .meta-row, .details { grid-template-columns: 1fr; }
+            .brand, .summary, .footer { flex-direction: column; align-items: flex-start; }
+            .summary { align-items: flex-start; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice">
+          <div class="header">
+            <div class="brand">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div class="brand-mark">RDL</div>
+                <div>
+                  <h2 class="title">RAJ DIGITAL LIBRARY</h2>
+                  <p class="subtitle">Study Center & Reading Room</p>
+                </div>
+              </div>
+              <div class="status">Paid</div>
+            </div>
+          </div>
+
+          <div class="body">
+            <div class="meta-row">
+              <div class="meta-box">
+                <span class="meta-label">Receipt No.</span>
+                <div class="meta-value">${receipt.receiptNumber}</div>
+              </div>
+              <div class="meta-box">
+                <span class="meta-label">Issued on</span>
+                <div class="meta-value">${receipt.paymentDate}</div>
+              </div>
+            </div>
+
+            <div class="summary">
+              <div>
+                <small>Total Paid</small>
+                <strong>₹${receipt.amount.toLocaleString('en-IN')}</strong>
+              </div>
+              <div class="chip">${receipt.membershipPlan ?? 'Membership'}</div>
+            </div>
+
+            <div class="details">
+              <div class="section">
+                <h4>Member details</h4>
+                <div class="row"><span>Member ID</span><strong>M-${receipt.memberId.toString().padStart(4, '0')}</strong></div>
+                <div class="row"><span>Name</span><strong>${receipt.memberName ?? 'Unknown'}</strong></div>
+                <div class="row"><span>Mobile</span><strong>${receipt.mobileNumber ?? '—'}</strong></div>
+                <div class="row"><span>Seat</span><strong>${receipt.assignedSeat ?? '—'}</strong></div>
+              </div>
+
+              <div class="section">
+                <h4>Membership details</h4>
+                <div class="row"><span>Plan</span><strong>${receipt.membershipPlan ?? '—'}</strong></div>
+                <div class="row"><span>Start date</span><strong>${receipt.membershipStartDate ?? '—'}</strong></div>
+                <div class="row"><span>Expiry date</span><strong>${receipt.membershipExpiryDate ?? '—'}</strong></div>
+                <div class="row"><span>Payment mode</span><strong>${receipt.paymentMethod}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div>
+              <div class="thankyou">Thank you for your payment.</div>
+              <div>${receipt.notes ? `Note: ${receipt.notes}` : 'Raj Digital Library'}</div>
+            </div>
+            <div class="signature">Authorized Receipt<br />Raj Digital Library</div>
+          </div>
         </div>
-        <hr style="border-top: 1px dashed #111827;" />
-        <p style="margin: 10px 0 0;"><strong>Receipt No :</strong> ${receipt.receiptNumber}</p>
-        <p style="margin: 2px 0 0;"><strong>Date      :</strong> ${receipt.paymentDate}</p>
-        <p style="margin: 10px 0 0;"><strong>Member ID  :</strong> M-${receipt.memberId.toString().padStart(4, '0')}</p>
-        <p style="margin: 2px 0 0;"><strong>Name       :</strong> ${receipt.memberName ?? 'Unknown'}</p>
-        <p style="margin: 2px 0 0;"><strong>Mobile     :</strong> ${receipt.mobileNumber ?? '—'}</p>
-        <p style="margin: 10px 0 0;"><strong>Seat        :</strong> ${receipt.assignedSeat ?? '—'}</p>
-        <p style="margin: 2px 0 0;"><strong>Plan        :</strong> ${receipt.membershipPlan ?? '—'}</p>
-        <p style="margin: 10px 0 0;"><strong>Membership</strong></p>
-        <p style="margin: 2px 0 0;"><strong>Start Date  :</strong> ${receipt.membershipStartDate ?? '—'}</p>
-        <p style="margin: 2px 0 0;"><strong>Expiry Date :</strong> ${receipt.membershipExpiryDate ?? '—'}</p>
-        <p style="margin: 10px 0 0;"><strong>Amount Paid :</strong> ₹${receipt.amount.toLocaleString('en-IN')}</p>
-        <p style="margin: 2px 0 0;"><strong>Payment Via :</strong> ${receipt.paymentMethod}</p>
-        <p style="margin: 10px 0 0;"><strong>Received By : Raj Digital Library</strong></p>
-        <p style="margin: 12px 0 0;">Thank You!</p>
-        <p style="margin: 2px 0 0;">Raj Digital Library</p>
-        <p style="margin: 2px 0 0;">Phone: 89626 51322</p>
       </body>
     </html>
   `
@@ -267,9 +483,12 @@ function ReceiptPreview({ receipt, onClose }: { receipt: Receipt | null; onClose
     <div className="receipt-overlay" onClick={onClose}>
       <div className="receipt-card" onClick={(event) => event.stopPropagation()}>
         <div className="receipt-header">
-          <div>
-            <p className="eyebrow">Payment Receipt</p>
-            <h3>Raj Digital Library</h3>
+          <div className="receipt-brand">
+            <div className="receipt-brand-mark">RDL</div>
+            <div>
+              <p className="eyebrow">Official receipt</p>
+              <h3>Raj Digital Library</h3>
+            </div>
           </div>
           <div className="receipt-actions">
             <button type="button" className="btn btn-primary" onClick={() => receipt && downloadInvoice(receipt)}>
@@ -283,18 +502,58 @@ function ReceiptPreview({ receipt, onClose }: { receipt: Receipt | null; onClose
             </button>
           </div>
         </div>
-        <div className="receipt-body">
-          <div className="receipt-row"><span>Receipt No.</span><strong>{receipt.receiptNumber}</strong></div>
-          <div className="receipt-row"><span>Date</span><strong>{receipt.paymentDate}</strong></div>
-          <div className="receipt-row"><span>Member</span><strong>{receipt.memberName ?? 'Unknown'}</strong></div>
-          <div className="receipt-row"><span>Mobile</span><strong>{receipt.mobileNumber ?? '—'}</strong></div>
-          <div className="receipt-row"><span>Seat</span><strong>{receipt.assignedSeat ?? '—'}</strong></div>
-          <div className="receipt-row"><span>Membership</span><strong>{receipt.membershipPlan ?? '—'}</strong></div>
-          <div className="receipt-row"><span>Valid From</span><strong>{receipt.membershipStartDate ?? '—'}</strong></div>
-          <div className="receipt-row"><span>Valid Till</span><strong>{receipt.membershipExpiryDate ?? '—'}</strong></div>
-          <div className="receipt-row"><span>Amount</span><strong>{formatCurrency(receipt.amount)}</strong></div>
-          <div className="receipt-row"><span>Mode</span><strong>{receipt.paymentMethod}</strong></div>
-          {receipt.notes ? <div className="receipt-row"><span>Notes</span><strong>{receipt.notes}</strong></div> : null}
+
+        <div className="receipt-topline">
+          <span className="receipt-badge">Paid</span>
+          <div className="receipt-number-block">
+            <span>Receipt No.</span>
+            <strong>{receipt.receiptNumber}</strong>
+          </div>
+          <div className="receipt-date-block">
+            <span>Issued on</span>
+            <strong>{receipt.paymentDate}</strong>
+          </div>
+        </div>
+
+        <div className="receipt-summary">
+          <div>
+            <small>Total paid</small>
+            <strong>{formatCurrency(receipt.amount)}</strong>
+          </div>
+          <div className="receipt-chip">{receipt.membershipPlan ?? 'Membership'}</div>
+        </div>
+
+        <div className="receipt-grid">
+          <div className="receipt-section">
+            <h4>Member details</h4>
+            <div className="receipt-row"><span>Member ID</span><strong>M-{receipt.memberId.toString().padStart(4, '0')}</strong></div>
+            <div className="receipt-row"><span>Name</span><strong>{receipt.memberName ?? 'Unknown'}</strong></div>
+            <div className="receipt-row"><span>Mobile</span><strong>{receipt.mobileNumber ?? '—'}</strong></div>
+            <div className="receipt-row"><span>Seat</span><strong>{receipt.assignedSeat ?? '—'}</strong></div>
+          </div>
+
+          <div className="receipt-section">
+            <h4>Membership details</h4>
+            <div className="receipt-row"><span>Plan</span><strong>{receipt.membershipPlan ?? '—'}</strong></div>
+            <div className="receipt-row"><span>Start date</span><strong>{receipt.membershipStartDate ?? '—'}</strong></div>
+            <div className="receipt-row"><span>Expiry date</span><strong>{receipt.membershipExpiryDate ?? '—'}</strong></div>
+            <div className="receipt-row"><span>Payment mode</span><strong>{receipt.paymentMethod}</strong></div>
+          </div>
+        </div>
+
+        {receipt.notes ? (
+          <div className="receipt-notes">
+            <span>Notes</span>
+            <strong>{receipt.notes}</strong>
+          </div>
+        ) : null}
+
+        <div className="receipt-footer">
+          <div>
+            <div className="receipt-thankyou">Thank you for your payment.</div>
+            <small>Raj Digital Library • Study Center & Reading Room</small>
+          </div>
+          <div className="receipt-signature">Authorized receipt</div>
         </div>
       </div>
     </div>
@@ -328,8 +587,22 @@ function App() {
   const [memberMenuOpenId, setMemberMenuOpenId] = useState<number | null>(null)
   const [selectedDashboardView, setSelectedDashboardView] = useState<'overview' | 'expired' | 'expiring' | 'active' | 'revenue'>('overview')
 
-  function getAuthHeaders() {
-    return auth.token ? { Authorization: `Bearer ${auth.token}` } : { Authorization: '' }
+  function getAuthHeaders(): Record<string, string> {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('rdl-token') : null
+    const tokenValue = auth.token ?? stored
+    const headers: Record<string, string> = {}
+    if (tokenValue) {
+      headers.Authorization = `Bearer ${tokenValue}`
+    }
+    return headers
+  }
+
+  function handleUnauthorized() {
+    localStorage.removeItem('rdl-token')
+    localStorage.removeItem('rdl-username')
+    setAuth({ token: null, username: null })
+    setLoading(false)
+    setFeedback({ type: 'error', text: 'Session expired. Please sign in again.' })
   }
 
   function setRoute(section: string) {
@@ -359,8 +632,14 @@ function App() {
 
     try {
       const response = await fetch(`${apiBase}/members`, { headers: getAuthHeaders() })
+      if (!response.ok) {
+        console.warn('Unable to load members:', response.status)
+        setMembers([])
+        return
+      }
+
       const data = await response.json()
-      setMembers(data)
+      setMembers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error(error)
       setFeedback({ type: 'error', text: 'Unable to load members right now.' })
@@ -372,18 +651,41 @@ function App() {
   async function loadSeats() {
     try {
       const response = await fetch(`${apiBase}/seats`, { headers: getAuthHeaders() })
-      const data = await response.json()
-      setSeats(data)
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
+
+        console.warn('Unable to load seats:', response.status)
+        setSeats([])
+        return
+      }
+
+      const data = await response.json().catch(() => [])
+      setSeats(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error(error)
+      setSeats([])
     }
   }
 
   async function loadPayments() {
     try {
       const response = await fetch(`${apiBase}/payments`, { headers: getAuthHeaders() })
-      const data = await response.json()
-      setPayments(data)
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
+
+        console.warn('Unable to load payments:', response.status)
+        setPayments([])
+        return
+      }
+
+      const data = await response.json().catch(() => [])
+      setPayments(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error(error)
     }
@@ -392,8 +694,18 @@ function App() {
   async function loadDashboard() {
     try {
       const response = await fetch(`${apiBase}/dashboard`, { headers: getAuthHeaders() })
-      const data = await response.json()
-      setDashboard(data)
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
+
+        console.warn('Unable to load dashboard:', response.status)
+        return
+      }
+
+      const data = await response.json().catch(() => null)
+      if (data && typeof data === 'object') setDashboard(data)
     } catch (error) {
       console.error(error)
     }
@@ -402,8 +714,19 @@ function App() {
   async function loadReports() {
     try {
       const response = await fetch(`${apiBase}/reports`, { headers: getAuthHeaders() })
-      const data = await response.json()
-      setReports(data)
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
+
+        console.warn('Unable to load reports:', response.status)
+        setReports({ totalMembers: 0, activeMembers: 0, expiredMembers: 0, pendingMembers: 0, occupiedSeats: 0, availableSeats: 0, monthlyRevenue: 0, expiringSoon: [], recentPayments: [], revenueByMonth: [], statusBreakdown: [] })
+        return
+      }
+
+      const data = await response.json().catch(() => null)
+      setReports(typeof data === 'object' && data !== null ? data : { totalMembers: 0, activeMembers: 0, expiredMembers: 0, pendingMembers: 0, occupiedSeats: 0, availableSeats: 0, monthlyRevenue: 0, expiringSoon: [], recentPayments: [], revenueByMonth: [], statusBreakdown: [] })
     } catch (error) {
       console.error(error)
     }
@@ -457,16 +780,22 @@ function App() {
       return
     }
 
+    const existingMember = members.find((member) => member.id === editingMemberId)
+    if (!existingMember) {
+      setFeedback({ type: 'error', text: 'Member details are no longer available for update.' })
+      return
+    }
+
     const response = await fetch(`${apiBase}/members/${editingMemberId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
         ...editForm,
-        membershipPlan: 'Monthly',
-        membershipStartDate: new Date().toISOString().slice(0, 10),
-        membershipExpiryDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10),
-        status: 'Active',
-        monthlyDuration: 1,
+        membershipPlan: existingMember.membershipPlan,
+        membershipStartDate: existingMember.membershipStartDate,
+        membershipExpiryDate: existingMember.membershipExpiryDate,
+        status: existingMember.status,
+        monthlyDuration: existingMember.monthlyDuration ?? 1,
       }),
     })
 
@@ -720,7 +1049,7 @@ function App() {
   })
 
   const todayLabel = new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date())
-  const seatLookup = new Map(seats.map((seat) => [seat.label, seat]))
+  const seatLookup = new Map((Array.isArray(seats) ? seats : []).map((seat) => [seat.label, seat]))
   const selectedSeat = selectedSeatLabel ? seatLookup.get(selectedSeatLabel) ?? null : null
   const today = new Date()
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -921,7 +1250,10 @@ function App() {
             <h4>Assign seat</h4>
             <form className="form-grid" onSubmit={handleSeatAssignment}>
               <label className="field"><span>Member</span><select value={seatAssignment.memberId ?? ''} onChange={(event) => setSeatAssignment({ ...seatAssignment, memberId: Number(event.target.value) || null })}><option value="">Select member</option>{members.map((member) => <option key={member.id} value={member.id}>{member.fullName}</option>)}</select></label>
-              <label className="field"><span>Seat</span><select value={seatAssignment.seatLabel} onChange={(event) => setSeatAssignment({ ...seatAssignment, seatLabel: event.target.value })}><option value="">Select seat</option>{seats.map((seat) => <option key={seat.label} value={seat.label}>{seat.label} ({seat.status})</option>)}</select></label>
+              <label className="field"><span>Seat</span><select value={seatAssignment.seatLabel} onChange={(event) => setSeatAssignment({ ...seatAssignment, seatLabel: event.target.value })}><option value="">Select seat</option>{(Array.isArray(seats) ? seats : []).map((seat) => {
+                const displayStatus = seat.status === 'reserved' ? 'occupied' : seat.status
+                return <option key={seat.label} value={seat.label}>{seat.label} ({displayStatus})</option>
+              })}</select></label>
               <div className="form-actions full-width"><button type="submit" className="btn btn-primary">Assign Seat</button></div>
             </form>
           </div>
@@ -938,7 +1270,7 @@ function App() {
               <div className="seat-cells">
                 {row.seats.map((label) => {
                   const seat = seatLookup.get(label)
-                  const seatStatus = seat?.status ?? 'available'
+                  const seatStatus = seat?.status === 'reserved' ? 'occupied' : (seat?.status ?? 'available')
                   return <button key={label} type="button" className={`seat-cell ${seatStatus}`} onClick={() => handleSeatSelection(seat ?? { label, status: 'available', memberId: null, memberName: null, membershipExpiryDate: null })}><strong>{label}</strong><span>{seat?.memberName ?? 'Available'}</span></button>
                 })}
               </div>
@@ -958,7 +1290,7 @@ function App() {
             <h4>Record payment</h4>
             <form className="form-grid" onSubmit={handlePaymentSubmit}>
               <label className="field"><span>Member</span><select value={paymentForm.memberId} onChange={(event) => setPaymentForm({ ...paymentForm, memberId: event.target.value })} required><option value="">Select member</option>{members.map((member) => <option key={member.id} value={member.id}>{member.fullName}</option>)}</select></label>
-              <label className="field"><span>Assigned Seat</span><select value={paymentForm.seatLabel} onChange={(event) => setPaymentForm({ ...paymentForm, seatLabel: event.target.value })}><option value="">No seat selected</option>{seats.map((seat) => <option key={seat.label} value={seat.label}>{seat.label} ({seat.status})</option>)}</select></label>
+              <label className="field"><span>Assigned Seat</span><select value={paymentForm.seatLabel} onChange={(event) => setPaymentForm({ ...paymentForm, seatLabel: event.target.value })}><option value="">No seat selected</option>{(Array.isArray(seats) ? seats : []).map((seat) => <option key={seat.label} value={seat.label}>{seat.label} ({seat.status})</option>)}</select></label>
               <label className="field"><span>Membership Plan</span><select value={paymentForm.membershipPlan} onChange={(event) => setPaymentForm({ ...paymentForm, membershipPlan: event.target.value })}>{membershipPlanOptions.map((plan) => <option key={plan} value={plan}>{plan}</option>)}</select></label>
               <label className="field"><span>Membership Start Date</span><input type="date" value={paymentForm.membershipStartDate} onChange={(event) => setPaymentForm({ ...paymentForm, membershipStartDate: event.target.value })} required /></label>
               <label className="field"><span>Membership End Date</span><input type="date" value={paymentForm.membershipExpiryDate} onChange={(event) => setPaymentForm({ ...paymentForm, membershipExpiryDate: event.target.value })} required /></label>

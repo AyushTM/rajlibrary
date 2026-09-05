@@ -1,0 +1,10 @@
+{
+  "name": "raj-digital-library",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm --prefix server start\" \"npm --prefix client run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

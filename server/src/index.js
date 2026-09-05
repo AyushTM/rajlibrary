@@ -8,6 +8,7 @@ const { assignSeat, vacateSeat, getSeatLayout } = require('./seatService');
 const { createPayment, listPayments, getPaymentsByMemberId, getReceiptByPaymentId } = require('./paymentService');
 const { login, verifyToken } = require('./authService');
 const { buildReportStats } = require('./reportService');
+const { resetAllData } = require('./resetService');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -183,6 +184,15 @@ app.get('/api/backup', requireAuth, (req, res) => {
 
   fs.writeFileSync(backupPath, JSON.stringify(payload, null, 2));
   res.download(backupPath, 'raj-digital-library-backup.json');
+});
+
+app.post('/api/reset', requireAuth, (req, res) => {
+  try {
+    resetAllData();
+    res.json({ status: 'ok', message: 'Revenue and records have been reset.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 app.post('/api/restore', requireAuth, (req, res) => {

@@ -14,6 +14,16 @@ function run() {
 
   assert.equal(created.membershipExpiryDate, '2026-09-01');
 
+  const pendingMember = createMember({
+    fullName: 'Kavya Singh',
+    mobileNumber: '7777777777',
+    joiningDate: '2026-08-02',
+    membershipPlan: 'Monthly',
+    membershipStartDate: '2026-08-02',
+  });
+
+  assert.equal(pendingMember.status, 'Pending');
+
   const renewed = renewMembership(created.id, {
     membershipPlan: 'Yearly',
     membershipStartDate: '2026-09-01',

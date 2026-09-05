@@ -19,7 +19,7 @@ function normalizeMemberPayload(payload) {
     membershipStartDate: payload.membershipStartDate?.trim(),
     membershipExpiryDate: payload.membershipExpiryDate?.trim(),
     assignedSeat: payload.assignedSeat?.trim() || null,
-    status: payload.status?.trim() || 'Active',
+    status: payload.status?.trim() || 'Pending',
     monthlyDuration: monthlyDuration && monthlyDuration > 0 ? monthlyDuration : 1,
   };
 }
@@ -31,8 +31,13 @@ function parseDate(value) {
 
 function deriveMemberStatus(status, expiryDate, today = new Date()) {
   const normalizedStatus = status?.trim();
-  if (!normalizedStatus || normalizedStatus === 'Pending' || normalizedStatus === 'Expired') {
+
+  if (!normalizedStatus || normalizedStatus === 'Expired') {
     return normalizedStatus || 'Active';
+  }
+
+  if (normalizedStatus === 'Pending') {
+    return 'Pending';
   }
 
   if (!expiryDate) {

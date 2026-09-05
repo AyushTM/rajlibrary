@@ -22,7 +22,9 @@ function getSeatLayout() {
 
     const today = new Date();
     const expiry = new Date(seatMember.membership_expiry_date);
-    const expiresSoon = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 7;
+    const diffDays = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+    const expiresSoon = diffDays <= 7 && diffDays >= 0;
+
     let status = 'occupied';
     if (expiresSoon) {
       status = 'expiring';
