@@ -1,4 +1,5 @@
 const express = require('express');
+const whatsappRoutes = require('./whatsappRoutes');
 const fs = require('node:fs');
 const path = require('node:path');
 const cors = require('cors');
@@ -15,6 +16,18 @@ const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: true,
+      ignored: true,
+      reason: 'Malformed JSON payload',
+    });
+  }
+
+  next(err);
+});
+app.use('/api/whatsapp', whatsappRoutes);
 
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -104,7 +117,7 @@ app.get('/api/seats', requireAuth, (req, res) => {
 
 app.post('/api/seats/assign', requireAuth, (req, res) => {
   try {
-    const seat = assignSeat(req.body.memberId, req.body.seatLabel);
+    const seat = assignSeat(req.body.memberId, req.body.seatLabel, req.body.membershipStartDate, req.body.membershipExpiryDate);
     res.json(seat);
   } catch (error) {
     res.status(400).json({ error: error.message });

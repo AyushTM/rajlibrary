@@ -117,4 +117,30 @@ for (const [columnName, definition] of [
   }
 }
 
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS whatsapp_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id INTEGER,
+      phone_number TEXT NOT NULL,
+      message_type TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      status TEXT NOT NULL,
+      whatsapp_message_id TEXT,
+      sent_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE SET NULL
+    );
+  `);
+} catch (error) {
+  if (!String(error.message).includes('already exists')) {
+    throw error;
+  }
+}
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_member_type
+  ON whatsapp_messages(member_id, message_type, sent_at);
+`);
+
 module.exports = db;

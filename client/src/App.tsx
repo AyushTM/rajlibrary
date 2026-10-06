@@ -136,6 +136,8 @@ type PaymentFormState = {
 type SeatAssignmentState = {
   memberId: number | null
   seatLabel: string
+  membershipStartDate?: string
+  membershipExpiryDate?: string
 }
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
@@ -761,9 +763,9 @@ function App() {
         ...form,
         adhaarNumber: form.adhaarNumber.trim(),
         membershipPlan: 'Monthly',
-        membershipStartDate: new Date().toISOString().slice(0, 10),
-        membershipExpiryDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10),
-        status: 'Active',
+        membershipStartDate: '',
+        membershipExpiryDate: '',
+        status: 'Expired',
         monthlyDuration: 1,
       }),
     })
@@ -1028,16 +1030,47 @@ function App() {
     if (!seatAssignment.memberId || !seatAssignment.seatLabel) {
       return
     }
+    // Validate date inputs (if provided)
+    const startDate = seatAssignment.membershipStartDate ? parseMembershipDate(seatAssignment.membershipStartDate) : null
+    const expiryDate = seatAssignment.membershipExpiryDate ? parseMembershipDate(seatAssignment.membershipExpiryDate) : null
+
+    if (startDate && expiryDate && startDate.getTime() > expiryDate.getTime()) {
+      setFeedback({ type: 'error', text: 'Start date must be the same or earlier than expiry date.' })
+      return
+    }
+
+    // If dates are provided and differ from existing member's membership period, confirm override
+    const member = members.find((m) => m.id === seatAssignment.memberId) ?? null
+    if (member && (seatAssignment.membershipStartDate || seatAssignment.membershipExpiryDate)) {
+      const existingStart = member.membershipStartDate || ''
+      const existingExpiry = member.membershipExpiryDate || ''
+      const newStart = seatAssignment.membershipStartDate || existingStart
+      const newExpiry = seatAssignment.membershipExpiryDate || existingExpiry
+
+      const willOverride = (seatAssignment.membershipStartDate && seatAssignment.membershipStartDate !== existingStart) || (seatAssignment.membershipExpiryDate && seatAssignment.membershipExpiryDate !== existingExpiry)
+      if (willOverride) {
+        const confirmMsg = `You are about to override ${member.fullName}'s membership period.\n\nCurrent: ${existingStart || '—'} → ${existingExpiry || '—'}\nNew: ${newStart || '—'} → ${newExpiry || '—'}\n\nProceed?`
+        if (!window.confirm(confirmMsg)) {
+          return
+        }
+      }
+    }
 
     const response = await fetch(`${apiBase}/seats/assign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ memberId: seatAssignment.memberId, seatLabel: seatAssignment.seatLabel }),
+      body: JSON.stringify({
+        memberId: seatAssignment.memberId,
+        seatLabel: seatAssignment.seatLabel,
+        membershipStartDate: seatAssignment.membershipStartDate || undefined,
+        membershipExpiryDate: seatAssignment.membershipExpiryDate || undefined,
+      }),
     })
 
     if (response.ok) {
+      const result = await response.json().catch(() => null)
       setSeatAssignment(emptySeatAssignment)
-      setFeedback({ type: 'success', text: 'Seat assigned successfully.' })
+      setFeedback({ type: 'success', text: `Seat assigned successfully. New expiry: ${result?.membershipExpiryDate ?? '—'}` })
       await refreshData()
     } else {
       const error = await response.json().catch(() => ({ error: 'Unable to assign seat.' }))
@@ -1300,6 +1333,8 @@ function App() {
                 const displayStatus = seat.status === 'reserved' ? 'occupied' : (seat.status === 'expired' ? 'expired' : seat.status)
                 return <option key={seat.label} value={seat.label}>{seat.label} ({displayStatus})</option>
               })}</select></label>
+              <label className="field"><span>Start date</span><input type="date" value={seatAssignment.membershipStartDate ?? ''} onChange={(event) => setSeatAssignment({ ...seatAssignment, membershipStartDate: event.target.value })} /></label>
+              <label className="field"><span>Expiry date</span><input type="date" value={seatAssignment.membershipExpiryDate ?? ''} onChange={(event) => setSeatAssignment({ ...seatAssignment, membershipExpiryDate: event.target.value })} /></label>
               <div className="form-actions full-width"><button type="submit" className="btn btn-primary">Assign Seat</button></div>
             </form>
           </div>

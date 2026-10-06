@@ -1,4 +1,5 @@
 const db = require('./db');
+const { normalizeIndianPhoneNumber } = require('./phoneUtils');
 
 const PLAN_DURATIONS = {
   Monthly: 1,
@@ -13,7 +14,7 @@ function normalizeMemberPayload(payload) {
 
   return {
     fullName: payload.fullName?.trim(),
-    mobileNumber: payload.mobileNumber?.trim(),
+    mobileNumber: normalizeIndianPhoneNumber(payload.mobileNumber),
     email: payload.email?.trim() || null,
     adhaarNumber: payload.adhaarNumber?.trim() || payload.aadhaarNumber?.trim() || null,
     joiningDate: payload.joiningDate?.trim(),
@@ -177,6 +178,24 @@ function getMember(id) {
   return row ? mapRow(row) : undefined;
 }
 
+function getMemberByPhone(phoneNumber) {
+  const normalizedPhone = normalizeIndianPhoneNumber(phoneNumber);
+
+  if (!normalizedPhone) {
+    return undefined;
+  }
+
+  const rows = db.prepare('SELECT * FROM members').all();
+
+  for (const row of rows) {
+    if (normalizeIndianPhoneNumber(row.mobile_number) === normalizedPhone) {
+      return mapRow(row);
+    }
+  }
+
+  return undefined;
+}
+
 function updateMember(id, updates) {
   const existing = getMember(id);
   if (!existing) {
@@ -273,6 +292,7 @@ module.exports = {
   createMember,
   listMembers,
   getMember,
+  getMemberByPhone,
   updateMember,
   deleteMember,
   renewMembership,

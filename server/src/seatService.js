@@ -46,7 +46,7 @@ function getSeatLayout() {
   }));
 }
 
-function assignSeat(memberId, seatLabel) {
+function assignSeat(memberId, seatLabel, membershipStartDate, membershipExpiryDate) {
   const member = getMember(memberId);
   if (!member) {
     throw new Error('Member not found');
@@ -60,8 +60,49 @@ function assignSeat(memberId, seatLabel) {
     throw new Error('Seat already assigned');
   }
 
-  db.prepare('UPDATE members SET assigned_seat = ? WHERE id = ?').run(seatLabel, memberId);
-  return { ...member, assignedSeat: seatLabel };
+  // Normalize optional date inputs into YYYY-MM-DD when possible. Treat invalid/missing as null.
+  function normalizeToYMD(value) {
+    if (!value) return null;
+    // Accept plain YYYY-MM-DD or any ISO-ish date parseable by Date
+    if (typeof value !== 'string') return null;
+    // Trim whitespace
+    const v = value.trim();
+    // If already in YYYY-MM-DD, accept directly
+    const ymdMatch = /^\d{4}-\d{2}-\d{2}$/.test(v);
+    if (ymdMatch) return v;
+    // Try to parse via Date
+    const parsed = new Date(v);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const startDateParam = normalizeToYMD(membershipStartDate);
+  const expiryDateParam = normalizeToYMD(membershipExpiryDate);
+
+  // Update assigned seat and override membership dates when valid values are provided.
+  // If both start and expiry dates are provided, mark member as Active (same rule as payments).
+  db.prepare(`
+    UPDATE members SET
+      assigned_seat = ?,
+      membership_start_date = CASE WHEN ? IS NOT NULL THEN ? ELSE membership_start_date END,
+      membership_expiry_date = CASE WHEN ? IS NOT NULL THEN ? ELSE membership_expiry_date END,
+      status = CASE WHEN ? IS NOT NULL AND ? IS NOT NULL THEN 'Active' ELSE status END
+    WHERE id = ?
+  `).run(seatLabel, startDateParam, startDateParam, expiryDateParam, expiryDateParam, startDateParam, expiryDateParam, memberId);
+
+  // Return the fresh member record
+  const updated = getMember(memberId);
+  // Log for diagnostics when running locally
+  try {
+    console.log('[seatService] assignSeat:', { memberId, seatLabel, membershipStartDate: startDateParam, membershipExpiryDate: expiryDateParam, updatedExpiry: updated.membershipExpiryDate })
+  } catch (e) {
+    // ignore
+  }
+
+  return { ...updated, assignedSeat: updated.assignedSeat };
 }
 
 function vacateSeat(memberId) {
